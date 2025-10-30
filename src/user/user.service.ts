@@ -10,7 +10,7 @@ export class UserService {
   async create(createUserDto: CreateUserDto) {
     const { password, ...user } = createUserDto;
     const hashedPassword = await hash(password);
-    return this.prisma.users.create({
+    return this.prisma.user.create({
       data: {
         ...user,
         password: hashedPassword,
@@ -18,7 +18,7 @@ export class UserService {
     });
   }
   async findByEmail(email: string) {
-    const user = await this.prisma.users.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: {
         email,
       },
@@ -27,7 +27,7 @@ export class UserService {
   }
 
   async findById(userId: string) {
-    const user = await this.prisma.users.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: {
         id: userId,
       },
@@ -36,9 +36,18 @@ export class UserService {
   }
 
   async updateRefreshToken(userId: string, hashedRT: string | null) {
-    await this.prisma.users.update({
+    await this.prisma.user.update({
       where: { id: userId },
       data: { hashedRefreshToken: hashedRT },
     });
+  }
+
+  async findUserPolicies(userId: string) {
+    const userPolicies = await this.prisma.userPolicy.findMany({
+      where: { userId },
+      include: { policy: true },
+    });
+
+    return userPolicies.map((up) => up.policy.name);
   }
 }

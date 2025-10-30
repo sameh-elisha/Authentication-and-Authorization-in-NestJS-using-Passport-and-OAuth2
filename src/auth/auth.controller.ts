@@ -20,7 +20,9 @@ import { GoogleAuthGuard } from './guards/google-auth/google-auth.guard';
 import { Public } from './decorators/public.decorator';
 import { Roles } from './decorators/roles.decorator';
 import { RolesGuard } from './guards/roles/roles.guard';
-@Public()
+import { Auth } from './decorators/auth.decorator';
+import { Role } from '@prisma/client';
+import { Policies } from './decorators/policies.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -48,48 +50,57 @@ export class AuthController {
   @Get('google/login')
   googleLogin() {}
 
-  @UseGuards(GoogleAuthGuard)
-  @Get('google/callback')
-  async googleCallback(@Request() req, @Res() res: Response) {
-    console.log('Google User', req.user);
+  // @UseGuards(GoogleAuthGuard)
+  // @Get('google/callback')
+  // async googleCallback(@Request() req, @Res() res: Response) {
+  //   console.log('Google User', req.user);
 
-    const response = await this.authService.login(req.user.id, req.user.name);
+  //   const response = await this.authService.login(req.user.id, req.user.name);
 
-    res.cookie('accessToken', response.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // use HTTPS in prod
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
-    });
+  //   res.cookie('accessToken', response.accessToken, {
+  //     httpOnly: true,
+  //     secure: process.env.NODE_ENV === 'production', // use HTTPS in prod
+  //     sameSite: 'lax',
+  //     maxAge: 15 * 60 * 1000,
+  //   });
 
-    res.cookie('refreshToken', response.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    const userName = response.name
-      ? encodeURIComponent(response.name)
-      : 'Unknown';
+  //   res.cookie('refreshToken', response.refreshToken, {
+  //     httpOnly: true,
+  //     secure: process.env.NODE_ENV === 'production',
+  //     sameSite: 'lax',
+  //     maxAge: 7 * 24 * 60 * 60 * 1000,
+  //   });
+  //   const userName = response.name
+  //     ? encodeURIComponent(response.name)
+  //     : 'Unknown';
 
-    //  Redirect to frontend without sensitive data
-    return res.redirect(
-      `${process.env.FRONTEND_URL}/auth/callback?userId=${response.userId}&name=${encodeURIComponent(
-        userName,
-      )}`,
-    );
-  }
+  //   //  Redirect to frontend without sensitive data
+  //   return res.redirect(
+  //     `${process.env.FRONTEND_URL}/auth/callback?userId=${response.userId}&name=${encodeURIComponent(
+  //       userName,
+  //     )}`,
+  //   );
+  // }
 
   @Post('logout')
+  @Auth()
   async logout(@Request() req, @Res() res: Response) {
     res.clearCookie('accessToken');
     res.clearCookie('refreshToken');
     return this.authService.signOut(req.user.id);
   }
 
-  @Roles('ADMIN')
+  @Auth()
   @Get('profile')
-  getProfile(@Request() req) {
-    return req.user;
+  getProfile() {
+    return { message: 'You are authenticated! ✅' };
+  }
+
+  // ✅ Only admins
+  @Policies('can_read_users')
+  @Auth(Role.ADMIN)
+  @Get('admin')
+  getAdminData() {
+    return { message: 'Welcome, Admin! 🔐' };
   }
 }

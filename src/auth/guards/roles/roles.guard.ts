@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { Observable } from 'rxjs';
@@ -7,16 +12,18 @@ import { ROLES_KEY } from '../../decorators/roles.decorator';
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
-    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>('roles', [
       context.getHandler(),
       context.getClass(),
     ]);
-    if (!requiredRoles) return true;
-    const user = context.switchToHttp().getRequest().user;
-    const hasRequiredRole = requiredRoles.some((role) => user.role === role);
-    return hasRequiredRole;
+
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+    if (!user) throw new ForbiddenException('User missing');
+
+    if (!requiredRoles || requiredRoles.length === 0) return true;
+
+    return requiredRoles.includes(user.role);
   }
 }
