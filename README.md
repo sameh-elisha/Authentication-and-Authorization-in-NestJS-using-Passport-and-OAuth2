@@ -10,6 +10,8 @@ A full-featured NestJS project implementing **authentication and authorization**
 - User authentication with Google OAuth2
 - JWT access and refresh tokens
 - Role-based authorization
+- Policiy-based authorization RBAC
+
 - Secure password handling
 - Prisma ORM integration with PostgreSQL
 
